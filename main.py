@@ -2,6 +2,9 @@ from Patient import Patient
 from DataStorage import DataStorage
 from PredicateEncryption import PredicateEncryption
 
+# Temporary import...
+from charm.toolbox.pairinggroup import ZR, GT
+
 def main():
     test()
 
@@ -22,26 +25,24 @@ def test():
     data_storage.updatePatientFile(test_patient)
 
     print("[main] Testing predicate encryption (1)")
-    pe = PredicateEncryption(1) # 1 attribute
-    user_id = 1
-    print(f"[main] User ID is {user_id}")
+    pe = PredicateEncryption(2) # 2 attributes
+    user_id = pe.group.random(ZR)
+    #print(f"[main] User ID is {user_id}")
     pk, sk = pe.authoritySetup()
-    print(f"[main] Public key = {pk}")
-    print(f"[main] Secret key = {sk}")
+    #print(f"[main] Public key = {pk}")
+    #print(f"[main] Secret key = {sk}")
 
-    K, attr_list = pe.keyGen(pk, sk, ['0'], user_id)
-    print(f"[main] After key generation:\n\t Key = {K}\n\t Attributes list = {attr_list}")
+    attr_list = ['0']
+    print(f"[main] Calling keyGen()")
+    K = pe.keyGen(sk, attr_list, user_id)
 
-    message = 111122223333 # I don't know how to create a message inside the group G and encode/decode it!!!
+    message = pe.group.random(GT) # I don't know how to create a message inside the group and encode/decode it without using this auxiliart function
 
     encripted_data = pe.encrypt(message, "0", pk) # policies limited to 'or' and 'and'
     # pretty_print_enc_data(encripted_data)
-    print(f"[main] Ciphertext: {encripted_data['c0']}")
 
     pe.decrypt(encripted_data, K, ['1'], user_id) # Wrong attr list
-    plaintext = pe.decrypt(encripted_data, K, attr_list, user_id) # Corret attr list
-
-    print(f"[main] Plaintext after decryption: {plaintext}")
+    pe.decrypt(encripted_data, K, attr_list, user_id) # Corret attr list
 
 if __name__ == "__main__":
     main()
