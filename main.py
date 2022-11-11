@@ -1,4 +1,4 @@
-from Patient import Patient
+from Patient import *
 from DataStorage import DataStorage
 from PredicateEncryption import PredicateEncryption
 
@@ -7,6 +7,7 @@ from charm.toolbox.pairinggroup import ZR, GT
 
 def main():
     test()
+    test2()
 
 def pretty_print_enc_data(d, indent=0):
    for key, value in d.items():
@@ -43,6 +44,26 @@ def test():
 
     pe.decrypt(encripted_data, K, ['1'], user_id) # Wrong attr list
     pe.decrypt(encripted_data, K, attr_list, user_id) # Corret attr list
+
+def test2():
+    print("[main] Setup")
+    patient1 = Patient("Test One", 22, "1", ['AAA', 'BBB'])
+    patient2 = Patient("Test Two", 23, "2", ['AAA', 'BBB'])
+    insurance = Insurance("Test Three", 25, "2")
+    doctor = Doctor("Test One", 42, "1")
+    employer = Employer("Test Two", 23, "3")
+    hospital = Hospital("1")
+    club = HealthClub("1")
+
+    insurance.getReadAccess(patient1, 0)
+    doctor.getReadAccess(patient2, 1)
+    employer.getReadAccess(patient1, 0)
+    employer.getReadAccess(patient2, 0)
+
+    hospital.getWriteAccess(patient1, 0)
+    club.getWriteAccess(patient2, 0)
+
+    print("[main] Testing read/write")
 
 if __name__ == "__main__":
     main()
