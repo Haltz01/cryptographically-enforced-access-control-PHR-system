@@ -1,3 +1,6 @@
+from DataStorage import DataStorage
+from queue import Queue
+from Server import *
 class Patient:
     def __init__(self, name: str, age: int, id: str, allergies: list):
         # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
@@ -5,6 +8,7 @@ class Patient:
         self.age = age
         self.id = id.strip()
         self.allergies = [a.strip() for a in allergies]
+        self.dataStorage = DataStorage('./Patient')
 
     def __str__(self):
         return (f"Patient object\nName: {self.name}\nAllergies: {self.allergies}\nID document: {self.id}\nAge: {self.age}")
@@ -19,6 +23,12 @@ class Patient:
         output = output[:-1]
 
         return output
+
+    def sendToServer(self, serverQueue: Queue, inputStr: str): # inputStr could be the encode str
+        patientMsgRecord = MsgRecord(self.id, self.name, inputStr)
+        serverQueue.put(patientMsgRecord)
+        return
+
 
 class Person:
     def __init__(self, name: str, age: int, id: str):

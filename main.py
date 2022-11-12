@@ -1,5 +1,5 @@
 from Patient import *
-from DataStorage import DataStorage
+from Server import *
 from PredicateEncryption import PredicateEncryption
 
 # Temporary import...
@@ -8,6 +8,7 @@ from charm.toolbox.pairinggroup import ZR, GT
 def main():
     test()
     test2()
+    patientSendToServerTest()
 
 def pretty_print_enc_data(d, indent=0):
    for key, value in d.items():
@@ -19,11 +20,10 @@ def pretty_print_enc_data(d, indent=0):
 
 def test():
     print("[main] Testing data storage (1)")
-    data_storage = DataStorage('./test')
     test_patient = Patient("Test One", 22, "1234567890", ['AAA', 'BBB'])
-    data_storage.createPatientFile(test_patient)
+    test_patient.dataStorage.createFile(test_patient.id, test_patient.name)
     test_patient.age = 23
-    data_storage.updatePatientFile(test_patient)
+    test_patient.dataStorage.updateFile(test_patient.id, test_patient.name, test_patient.prettyPrintForFile())
 
     print("[main] Testing predicate encryption (1)")
     pe = PredicateEncryption(2) # 2 attributes
@@ -64,6 +64,18 @@ def test2():
     club.getWriteAccess(patient2, 0)
 
     print("[main] Testing read/write")
+
+def patientSendToServerTest():
+    print("[main] Testing data storage (1)")
+    test_patient = Patient("Test One", 22, "1234567890", ['AAA', 'BBB'])
+    test_patient.dataStorage.createFile(test_patient.id, test_patient.name)
+    test_patient.age = 23
+    test_patient.dataStorage.updateFile(test_patient.id, test_patient.name, test_patient.prettyPrintForFile())
+
+    server = Server()
+
+    test_patient.sendToServer(server.patientQueue, test_patient.prettyPrintForFile())
+    server.recvPatientData()
 
 if __name__ == "__main__":
     main()
