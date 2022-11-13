@@ -1,8 +1,9 @@
 from charm.toolbox.pairinggroup import ZR
+from Participant import Participant
 
 # A third party is someone who will be granted read access to patient files
 # The patient must provide their key (K) to this party to allow it to read files 
-class ThirdParty:
+class ThirdParty(Participant):
     def __init__(self, global_params):
         self.GID = global_params['group'].random(ZR)
         self.patient_data = {}

@@ -1,10 +1,11 @@
 from DataStorage import DataStorage
 from queue import Queue
 from Server import *
+from Participant import Participant
 
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 
-class Patient:
+class Patient(Participant):
     def __init__(self, name, age, allergies, global_params):
         # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
         self.name = name.strip()
