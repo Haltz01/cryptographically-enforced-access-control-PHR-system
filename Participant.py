@@ -1,25 +1,23 @@
-from DataStorage import DataStorage
-from queue import Queue
-from Server import *
-
-from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
+from charm.toolbox.pairinggroup import ZR, pair
+from charm.toolbox.msp import MSP
 
 class Participant:
     def __init__(self, global_params):
         self.GID = global_params['group'].random(ZR)
+        self.util = MSP(global_params['group'])
+        self.global_params = global_params
 
     def decrypt(self, ciphertext_data, K, attr_list, h_GID):
-        print()
-
-        print(f"[PE - decrypt] Request for decription made by user with hashed GID {h_GID}")
+        print(f"[Participant - decrypt] Request for decription made by user with hashed GID {h_GID}")
         print(f"\t- Ciphertext is {ciphertext_data['c0']}")
-        print(f"\t- Policy is {ciphertext_data['policy']}")
+        print(f"\t- Policy is {ciphertext_data['policy_str']}")
         print(f"\t- User says he/she has attributes {attr_list}")
 
         # check if the attr_list passed to the function satisfy our policy tree
-        nodes = self.util.prune(ciphertext_data['policy'], attr_list) 
+        policy = self.util.createPolicy(ciphertext_data['policy_str'])
+        nodes = self.util.prune(policy, attr_list) 
         if not nodes:
-            print ("[PE - decrypt] Policy not satisfied while trying to decrypt ciphertext.")
+            print ("[Participant - decrypt] Policy not satisfied while trying to decrypt ciphertext ({self.GID})")
             return None
 
         prod_x = 1
@@ -46,6 +44,6 @@ class Participant:
             # TODO: missing \prod_x (aux)^{c_x}, but it looks like it's not needed...
 
         message = ciphertext_data['c0'] / prod_x
-        print(f"[PE - decrypt] Message after decryption: {message} ")
+        print(f"[Participant - decrypt] Message after decryption: {message} ({self.GID})")
 
         return message

@@ -5,7 +5,6 @@
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 from charm.toolbox.ABEnc import ABEnc # interface for ABE scheme
 from charm.toolbox.msp import MSP
-
 class PredicateEncryption(ABEnc):
     def __init__(self, verbose = True):
         self.globalSetup()
@@ -14,14 +13,10 @@ class PredicateEncryption(ABEnc):
     def __str__(self):
         return (f"PredicateEncryption object")
     
+    # def getHashGID()
     # Group oracle to retrieve hash for GIDs 
     # Hash function H : {0, 1}^* -> G that maps global identities GID to elements of G (random oracle)
-    def getHashGID(self, GID, verbose=False):
-        h_GID = self.group.hash(GID, type=G1)
-        if verbose:
-            print(f"[PE] User {GID} has GID hash (in G1) = {h_GID}")
-
-        return h_GID
+    # Implemented at the Patient class
 
     def getGlobalParams(self):
         GP = {
@@ -63,8 +58,6 @@ class PredicateEncryption(ABEnc):
     """
     
     def encrypt(self, message, policy_str, public_key):
-        print()
-
         # Takes in a message M, an 'n' X 'l' access matrix A with 'p' mapping its rows to attributes, the global parameters GP, and the public keys PK of the relevant authorities
 
         print(f"[PE - encrypt] Message (before encryption): {message}")
@@ -128,4 +121,4 @@ class PredicateEncryption(ABEnc):
         
         print(f"[PE - encrypt] Encripted message c_0 = {c0}")
 
-        return { 'policy': policy, 'c0': c0, 'C': C }
+        return { 'policy_str': policy_str, 'c0': c0, 'C': C }

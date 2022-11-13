@@ -18,31 +18,55 @@ def pretty_print_enc_data(d, indent=0):
          print('\t' * (indent+1) + str(value))
         
 def test3():
+    print(f"[main] Creating DataStorage")
+    data_storage = DataStorage('./patients')
+
     print(f"[main] Initializing PredicateEncription()")
     pe = PredicateEncryption() 
     global_params = pe.getGlobalParams()
 
     print(f"[main] Creating Patient 1 for testing")
-    patient1 = Patient("Test 1", 22, ['A', 'B'], global_params)
+    patient1 = Patient("Test 1", global_params, data_storage)
+    print()
 
     print(f"[main] Creating an authority associated to Patient 1")
-    patient1_public_key = patient1.authoritySetup(global_params, 2) # 2 attributes
-    patient1_hash_GID = pe.getHashGID(patient1.GID)
+    patient1.authoritySetup(global_params, 2) # 2 attributes
+    print()
 
-    print(f"[main] Writting random data to personal Patient 1's file")
-    # TODO
+    print(f"[main] Writting random data to Patient 1's personal file")
+    random_data = pe.group.random(GT)
+    enc_data = pe.encrypt(random_data, "0", patient1.public_key) # TODO: change later -> this is a problem, because PE obj. shouldn't have access to the user's PK
+    print()
+    patient1.writeToRecord(enc_data['c0'], data_storage)
+    print()
+
+    print(f"[main] Reading data from Patient 1's personal file")
+    temp_ciphertext_data = {
+        'policy_str': enc_data['policy_str'],
+        'c0': "",
+        'C': enc_data['C']
+    }
+
+    msg = patient1.readFromRecord(data_storage, temp_ciphertext_data)
+    print(f"\t- Decripted data: {msg}")
+    print()
 
     print(f"[main] Generating a read access-grating key K from Patient 1")
-    patient1_K = patient1.keyGen(["0"], patient1_hash_GID, global_params)
+    patient1_K, patient1_attr_list = patient1.keyGen(enc_data['policy_str'], global_params)
+    print()
 
     print(f"[main] Creating a Third Party")
     third_party = ThirdParty(global_params)
+    print()
 
     print(f"[main] Giving the public paramenters from Patient 1 + K to the Third Party")
-    third_party.addPatientKey(patient1_public_key, patient1_K, patient1_hash_GID)
+    third_party.addPatientKey(patient1_K, patient1.getHashGID(), patient1.personal_record_filename, patient1_attr_list)
+    print()
     
     print(f"[main] Reading the personal record from Patient 1 with K")
-    # TODO
+    msg = third_party.readPatientFile(data_storage, patient1.getHashGID(), temp_ciphertext_data)
+    print(f"\t- Decripted data: {msg}")
+    print()
 
 
 def test():

@@ -1,26 +1,53 @@
-from DataStorage import DataStorage
-from queue import Queue
-from Server import *
 from Participant import Participant
+from hashlib import sha256
 
 from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
 
 class Patient(Participant):
-    def __init__(self, name, age, allergies, global_params):
-        # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
+    def __init__(self, name, global_params, data_storage):
+        super().__init__(global_params)
         self.name = name.strip()
-        self.age = age
-        self.GID = global_params['group'].random(ZR)
-        self.allergies = [a.strip() for a in allergies]
-        self.dataStorage = DataStorage('./Patient')
+        self.secret_key = ""
+        self.public_key = ""
+        self.qty_attributes = 0
+        self.personal_record_filename = sha256(global_params['group'].serialize(self.getHashGID(self.GID))).hexdigest()
+        data_storage.createFile(self.personal_record_filename)
 
     def __str__(self):
         return (f"Patient object\nName: {self.name}\nAllergies: {self.allergies}\nID document: {self.id}\nAge: {self.age}")
+        
+    def writeToRecord(self, enc_message, data_storage):
+        msg_bytes = self.global_params['group'].serialize(enc_message)
+        data_storage.updateFile(self.personal_record_filename, msg_bytes)
+
+    def readFromRecord(self, data_storage, ciphertext_data):
+        encrypted_message = data_storage.readFile(self.personal_record_filename)
+        encrypted_message = self.global_params['group'].deserialize(encrypted_message)
+
+        ciphertext_data['c0'] = encrypted_message
+        
+        all_attributes = []
+        for i in range(0, self.qty_attributes): # creating a K that satisties all attributes from this authority
+            all_attributes.append(str(i))
+        
+        K, attr_list = self.keyGen(all_attributes, self.global_params)
+        encrypted_message = self.decrypt(ciphertext_data, K, all_attributes, self.getHashGID(self.GID))
+        return encrypted_message
+        
+    # Group oracle to retrieve hash for GIDs 
+    # Hash function H : {0, 1}^* -> G that maps global identities GID to elements of G (random oracle)
+    def getHashGID(self, verbose=False):
+        h_GID = self.global_params['group'].hash(self.GID, type=G1)
+        if verbose:
+            print(f"[PE] User {self.GID} has GID hash (in G1) = {h_GID}")
+
+        return h_GID
 
     # Generates public key and secret key for an authority given all the attributes from that authority
-    # For all, all authorities have the same number of attributes
-    # TODO: add parameter to indicate number of attributes for each authority
     def authoritySetup(self, global_params, qty_attributes):
+        # Save quantity of attributes this authority uses
+        self.qty_attributes = int(qty_attributes)
+
         secret_key = []
         public_key = []
 
@@ -46,13 +73,12 @@ class Patient(Participant):
 
         self.secret_key = secret_key
         self.public_key = public_key
-
-        return public_key
     
     # Creates key with a certain list of attributes that can be used to read encripted messages with a policy that matches the list of attributes in the key
-    def keyGen(self, attr_list, h_GID, global_params):
+    def keyGen(self, attr_list, global_params):
         # To create a key for GID for attribute 'i' belonging to an authority, the authority computes K_{i,GID} = g^{\alpha_i}_1 * h_GID^{y_i}
         print(f"[Patient - keyGen] Generating key K for the following list of attributes: {attr_list} ({self.GID})")
+        h_GID = self.getHashGID()
         print(f"\t- User hashed GID = {h_GID}")
 
         g1 = global_params['generator']
@@ -66,7 +92,7 @@ class Patient(Participant):
             K[attr] = g1_alpha_i * (h_GID ** self.secret_key[attr][1]) # K_{i,GID} = gg_{1}^{\alpha_i}* h_GID^{y_i}
         print(f"[Patient - keyGen] Key K created! ({self.GID})\n\t- First entry in K: {K[int(attr_list[0])]}")
 
-        return K
+        return K, attr_list
 
     def prettyPrintForFile(self) -> str:
         output = "Name: " + self.name + "\n"
@@ -79,49 +105,7 @@ class Patient(Participant):
 
         return output
 
-    def sendToServer(self, serverQueue: Queue, inputStr: str): # inputStr could be the encode str
-        patientMsgRecord = MsgRecord(self.id, self.name, inputStr)
-        serverQueue.put(patientMsgRecord)
-        return
-
-
-class Person:
-    def __init__(self, name: str, age: int, id: str):
-        # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
-        self.name = name.strip()
-        self.age = age
-        self.id = id.strip()
-        self.readAccess = {}
-        self.writeAccess = {}
-
-    def getReadAccess(self, patient: Patient, sk: int):
-        self.readAccess[patient.id] = sk
-
-    def getWriteAccess(self, patient: Patient, pk: int):
-        self.writeAccess[patient.id] = pk
-
-class Provider():
-    def __init__(self, id: str):
-        # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
-        self.id = id.strip()
-        self.writeAccess = {}
-    
-    def getWriteAccess(self, patient: Patient, sk: int):
-        self.writeAccess[patient.id] = sk
-
-class Doctor(Person):
-    pass
-
-class Insurance(Person):
-    pass
-
-class Employer(Person):
-    pass
-
-class Hospital(Provider):
-    pass
-
-class HealthClub(Provider):
-    pass
-
-    
+    # def sendToServer(self, serverQueue: Queue, inputStr: str): # inputStr could be the encode str
+    #     patientMsgRecord = MsgRecord(self.id, self.name, inputStr)
+    #     serverQueue.put(patientMsgRecord)
+    #     return
