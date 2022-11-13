@@ -1,6 +1,7 @@
 from DataStorage import DataStorage
 from queue import Queue
 from Server import *
+from MedicalFacility import *
 class Patient:
     def __init__(self, name: str, age: int, id: str, allergies: list):
         # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
@@ -24,11 +25,15 @@ class Patient:
 
         return output
 
-    def sendToServer(self, serverQueue: Queue, inputStr: str): # inputStr could be the encode str
+    def sendToServer(self, serverQueue: Queue, inputStr: str): # inputStr need to be the encrypted str
         patientMsgRecord = MsgRecord(self.id, self.name, inputStr)
         serverQueue.put(patientMsgRecord)
         return
-
+    
+    def sendToMedicalFacility(self, MedicalFacility:MedicalFacility, MedicalFacilityQueue:Queue, inputList:list): 
+        # inputList is the public key of patient and usk for Medical Facilities
+        if (self.id in MedicalFacility.patientIds):
+            MedicalFacilityQueue.put(inputList)
 
 class Person:
     def __init__(self, name: str, age: int, id: str):
