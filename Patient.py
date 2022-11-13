@@ -1,7 +1,7 @@
 from Participant import Participant
 from hashlib import sha256
 
-from charm.toolbox.pairinggroup import PairingGroup, ZR, G1, G2, GT, pair
+from charm.toolbox.pairinggroup import ZR, G1, pair
 
 class Patient(Participant):
     def __init__(self, name, global_params, data_storage):

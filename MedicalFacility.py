@@ -1,4 +1,3 @@
-from charm.toolbox.pairinggroup import ZR
 from Participant import Participant
 
 class MedicalFacility(Participant):
@@ -9,7 +8,7 @@ class MedicalFacility(Participant):
     # Add to the mapping another user and its key to allow reading personal files
     def savePatientData(self, patient_K, patient_hash_GID, patient_attr_list, patient_public_key):
         super().savePatientData(patient_K, patient_hash_GID, patient_attr_list)
-        self.patient_data[patient_hash_GID]['public_key'] = patient_public_key
+        self.patient_data[patient_hash_GID]['public_key'] = patient_public_key # extra data stored here to allow encription of data in behalf of the user
         print(f"[MedicalFacility] Saved parameters to be able to decript/encript files from user <{str(patient_hash_GID)[:15]}...>")
 
     def writeToPatientFile(self, message, policy_str, data_storage, patient_hash_GID):

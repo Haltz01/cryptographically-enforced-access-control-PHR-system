@@ -1,14 +1,13 @@
-from Patient import *
-from Server import *
+from Patient import Patient
 from PredicateEncryption import PredicateEncryption
 from ThirdParty import ThirdParty
 from MedicalFacility import MedicalFacility
+from DataStorage import DataStorage
+
+from charm.toolbox.pairinggroup import GT, pair
 
 def main():
-    # test()
-    # test2()
-    # patientSendToServerTest()
-    test3()
+    test()
 
 def checkMessageEqual(original, decripted):
     if (original == decripted):
@@ -16,7 +15,7 @@ def checkMessageEqual(original, decripted):
     else:
         print("[main] Decripted text is NOT equal to the original (random) message!")
         
-def test3():
+def test():
     print(f"[main] Creating DataStorage")
     data_storage = DataStorage('./patients')
     print("===========================")
@@ -57,7 +56,7 @@ def test3():
     print("===========================")
 
     print(f"[main] Generating a read access-grating key K from Patient 1")
-    patient1_K, patient1_attr_list = patient1.keyGen(enc_data['policy_str'], global_params)
+    patient1_K, patient1_attr_list = patient1.keyGen(["0"], global_params)
     print("===========================")
 
     print(f"[main] Creating a Third Party")
@@ -78,6 +77,32 @@ def test3():
     patient1_K[0] = pair(patient1_K[0], patient1_K[0]) # Modifying one of the values for K...
     third_party.savePatientData(patient1_K, patient1_hashedGID, patient1_attr_list)
     msg = third_party.readPatientFile(data_storage, patient1_hashedGID, temp_ciphertext_data)
+
+    checkMessageEqual(random_data, msg)
+    print("===========================")
+
+    print(f"[main] Creating a second Third Party")
+    third_party2 = ThirdParty(global_params)
+    print("===========================")
+
+    print(f"[main] Generating a read access-grating key K (with attributes not used in the user's record file policy) from Patient 1")
+    patient1_K2, patient1_attr_list2 = patient1.keyGen(["1"], global_params)
+    print("===========================")
+
+    print(f"[main] Giving the paramenters from Patient 1 (K, hashed GID, etc.) to the second Third Party")
+    third_party2.savePatientData(patient1_K2, patient1_hashedGID, patient1_attr_list2)
+    print("===========================")
+    
+    print(f"[main] Reading the personal record from Patient 1 with WRONG K (as Third Party) -- policy doesn't match")
+    msg = third_party2.readPatientFile(data_storage, patient1_hashedGID, temp_ciphertext_data)
+
+    checkMessageEqual(random_data, msg)
+    print("===========================")
+
+    print(f"[main] Reading the personal record from Patient 1 with WRONG K (as Third Party) -- trying to fake correct attributes")
+    third_party2.patient_data[patient1.getHashGID()]['attr_list'] = ["0"] # this is just for testing purposes
+    third_party2.patient_data[patient1.getHashGID()]['K'][0] = third_party2.patient_data[patient1.getHashGID()]['K'][1] # this is just for testing purposes
+    msg = third_party2.readPatientFile(data_storage, patient1_hashedGID, temp_ciphertext_data)
 
     checkMessageEqual(random_data, msg)
     print("===========================")
@@ -107,77 +132,6 @@ def test3():
 
     checkMessageEqual(random_data, msg)
     print("===========================")
-
-def test2():
-    print("[main] Setup authorities (patients)")
-    pe1 = PredicateEncryption(2)
-    pe2 = PredicateEncryption(2)
-
-    patient1 = Patient("Test One", 22, "1", ['AAA', 'BBB']) # This patient will have a doctor, an insurer and was treated by hospital
-    patient2 = Patient("Test Two", 23, "2", ['AAA', 'BBB']) # This patient will have an employer and is member of sports club
-    
-    pk1, sk1 = pe1.authoritySetup()
-    pk2, sk2 = pe2.authoritySetup()
-
-    print("[main] Generatin keys for parties")
-    userIDs1 = []
-    userIDs2 = []
-    for i in range(5):
-        userIDs1.add(pe1.group.random(ZR))
-        userIDs2.add(pe2.group.random(ZR))
-    
-    print("[main] Creating parties")
-    insurance = Insurance("Test Three", 25, str(userIDs1.get(0)))
-    doctor = Doctor("Test One", 42, str(userIDs1.get(1)))
-    employer = Employer("Test Two", 23, str(userIDs2.get(0)))
-    hospital = Hospital(str(userIDs1.get(2)))
-    club = HealthClub(str(userIDs2.get(1)))
-
-    attr_list = ['0','1']
-
-    keys1 = []
-    keys2 = []
-
-    for i in range(5):
-        K1 = pe1.keyGen(sk1, attr_list, userIDs1[i])
-        K2 = pe2.keyGen(sk2, attr_list, userIDs2[i])
-        keys1.append(K1)
-        keys2.append(K2)
-
-    print("[main] Distribute keys")
-
-    insurance.getReadAccess(patient1, keys1[0])
-    doctor.getReadAccess(patient2, keys1[1])
-    employer.getReadAccess(patient1, keys2[0])
-
-    hospital.getWriteAccess(patient1, keys1[2])
-    club.getWriteAccess(patient2, keys2[1])
-
-    print("[main] Generating encrypted messages")
-    message1 = pe1.group.random(GT)
-    message2 = pe2.group.random(GT)
-
-    encripted_data1 = pe1.encrypt(message1, attr_list, pk1)
-    encripted_data2 = pe2.encrypt(message2, attr_list, pk2)
-
-    print("[main] Testing read/write")
-    pe1.decrypt(encripted_data1, insurance.getReadAccess[patient1.id], attr_list, insurance.id) # Party with permissions 
-    pe1.decrypt(encripted_data1, employer.getReadAccess[patient2.id], attr_list, employer.id) # Party without permissions
-    pe2.decrypt(encripted_data2, employer.getReadAccess[patient2.id], attr_list, employer.id) # Party without permissions
-    pe2.decrypt(encripted_data2, club.getWriteAccess[patient1.id], attr_list, club.id) # Party without permissions
-
-
-def patientSendToServerTest():
-    print("[main] Testing data storage (1)")
-    test_patient = Patient("Test One", 22, "1234567890", ['AAA', 'BBB'])
-    test_patient.dataStorage.createFile(test_patient.id, test_patient.name)
-    test_patient.age = 23
-    test_patient.dataStorage.updateFile(test_patient.id, test_patient.name, test_patient.prettyPrintForFile())
-
-    server = Server()
-
-    test_patient.sendToServer(server.patientQueue, test_patient.prettyPrintForFile())
-    server.recvPatientData()
 
 if __name__ == "__main__":
     main()
