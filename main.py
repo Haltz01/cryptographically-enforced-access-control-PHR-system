@@ -1,14 +1,13 @@
 from Patient import *
 from Server import *
 from PredicateEncryption import PredicateEncryption
-
-# Temporary import...
-from charm.toolbox.pairinggroup import ZR, GT
+from ThirdParty import ThirdParty
 
 def main():
-    test()
-    test2()
-    patientSendToServerTest()
+    # test()
+    # test2()
+    # patientSendToServerTest()
+    test3()
 
 def pretty_print_enc_data(d, indent=0):
    for key, value in d.items():
@@ -17,6 +16,34 @@ def pretty_print_enc_data(d, indent=0):
          pretty_print_enc_data(value, indent+1)
       else:
          print('\t' * (indent+1) + str(value))
+        
+def test3():
+    print(f"[main] Initializing PredicateEncription()")
+    pe = PredicateEncryption() 
+    global_params = pe.getGlobalParams()
+
+    print(f"[main] Creating Patient 1 for testing")
+    patient1 = Patient("Test 1", 22, ['A', 'B'], global_params)
+
+    print(f"[main] Creating an authority associated to Patient 1")
+    patient1_public_key = patient1.authoritySetup(global_params, 2) # 2 attributes
+    patient1_hash_GID = pe.getHashGID(patient1.GID)
+
+    print(f"[main] Writting random data to personal Patient 1's file")
+    # TODO
+
+    print(f"[main] Generating a read access-grating key K from Patient 1")
+    patient1_K = patient1.keyGen(["0"], patient1_hash_GID, global_params)
+
+    print(f"[main] Creating a Third Party")
+    third_party = ThirdParty(global_params)
+
+    print(f"[main] Giving the public paramenters from Patient 1 + K to the Third Party")
+    third_party.addPatientKey(patient1_public_key, patient1_K, patient1_hash_GID)
+
+    print(f"[main] Reading the personal record from Patient 1 with K")
+    # TODO
+
 
 def test():
     print("\n[main] Testing data storage (1)")

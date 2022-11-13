@@ -7,8 +7,7 @@ from charm.toolbox.ABEnc import ABEnc # interface for ABE scheme
 from charm.toolbox.msp import MSP
 
 class PredicateEncryption(ABEnc):
-    def __init__(self, qty_attributes, verbose = True):
-        self.qty_attributes = qty_attributes
+    def __init__(self, verbose = True):
         self.globalSetup()
         self.util = MSP(self.group, verbose)
 
@@ -24,6 +23,15 @@ class PredicateEncryption(ABEnc):
 
         return h_GID
 
+    def getGlobalParams(self):
+        GP = {
+            'group' : self.group,
+            'group_order' : self.group_order,
+            'generator' : self.g1
+        }
+
+        return GP
+
     # Creates the nilinear group G and also defines some global parameters, such as the group order and the generator g_1
     def globalSetup(self) -> dict:
         # A bilinear group G of order N = p_1 * p_2 * p_3 is chosen
@@ -36,56 +44,14 @@ class PredicateEncryption(ABEnc):
         self.group_order = group.order()
         self.g1 = g1
         self.group = group
+
+    # def authoritySetup():
+    # In a single authority model, the authority setup would happen here
+    # # For a MA-PE, this setup happens in the the Patient class
     
-    # Generates public key and secret key for an authority given all the attributes from that authority
-    # For all, all authorities have the same number of attributes
-    # TODO: add parameter to indicate number of attributes for each authority
-    def authoritySetup(self):
-        print()
-
-        secret_key = []
-        public_key = []
-
-        print(f"[PE - authoritySetup] Generating PK/SK pair for each attribute in the scheme")
-        for i in range(self.qty_attributes): # for each attribute in the universe of attributes
-            # we choose two random exponents alpha_i and y_i
-            alpha_i = self.group.random(ZR)
-            y_i = self.group.random(ZR)
-            # print(f"[PE] alpha_i = {alpha_i}")
-            # print(f"[PE] y_i = {y_i}")
-
-            e_gg_alpha_i = pair(self.g1, self.g1) ** alpha_i # e(g_1, g_1)^{\alpha_i}
-            g1_y_i = self.g1 ** y_i # g^{y_i}
-            # print(f"[PE] e_gg_alpha_i = {e_gg_alpha_i}")
-            # print(f"[PE] g1_y_i = {g1_y_i}")
-
-            public_key.append((e_gg_alpha_i, g1_y_i)) # PK = {e(g_1, g_1)^{\alpha_i} , g^{y_i}_1 \forall i}
-            secret_key.append((alpha_i, y_i)) # SK = {\alpha_i, y_i \forall i}
-        print(f"[PE - authoritySetup] All {self.qty_attributes} PK/SK pairs were created!")
-
-        return public_key, secret_key
-    
-    # Creates key with a certain list of attributes that can be used to read encripted messages with a policy that
-    # matches the list of attributes in the key
-    # This function as called by any authority (e.g. patient owning a secret key)
-    def keyGen(self, secret_key, attr_list, GID):
-        print()
-        # To create a key for GID for attribute 'i' belonging to an authority, the authority computes K_{i,GID} = g^{\alpha_i}_1 * h_GID^{y_i}
-        print(f"[PE - keyGen] Generating key K for the following list of attributes: {attr_list}")
-        print(f"\t- Request made by user with GID = {GID}")
-        
-        h_GID = self.getHashGID(GID)
-
-        K = {}
-        for attr in attr_list:
-            attr = int(attr) # we consider that all attributes are going to be integers
-
-            g1_alpha_i = self.g1 ** secret_key[attr][0] # g_{1}^{\alpha_i}
-
-            K[attr] = g1_alpha_i * (h_GID ** secret_key[attr][1]) # K_{i,GID} = gg_{1}^{\alpha_i}* h_GID^{y_i}
-        print(f"[PE - keyGen] Key K created!\n\t- First entry in K: {K[int(attr_list[0])]}")
-
-        return K
+    # def keyGen():
+    # In a single authority model, the authority setup would happen here
+    # # For a MA-PE, this setup happens in the the Patient class
 
     """
     Cantor pairing function
@@ -164,10 +130,10 @@ class PredicateEncryption(ABEnc):
 
         return { 'policy': policy, 'c0': c0, 'C': C }
     
-    def decrypt(self, ciphertext_data, K, attr_list, user_id):
+    def decrypt(self, ciphertext_data, K, attr_list, h_GID):
         print()
 
-        print(f"[PE - decrypt] Request for decription made by user with GID {user_id}")
+        print(f"[PE - decrypt] Request for decription made by user with hashed GID {h_GID}")
         print(f"\t- Ciphertext is {ciphertext_data['c0']}")
         print(f"\t- Policy is {ciphertext_data['policy']}")
         print(f"\t- User says he/she has attributes {attr_list}")
@@ -190,10 +156,6 @@ class PredicateEncryption(ABEnc):
             # print("c1 = ", c1)
             # print("c2 = ", c2)
             # print("c3 = ", c3)
-
-            # TODO: change this, so that users pass the hash to the function
-            # The way we're doing now allows easy "impersonation"
-            h_GID = self.getHashGID(user_id)
 
             # Calculate C_{1,x} * e(h_GID, C_{3,x}) / e(K_{\rho(x),GID}, C_{2,x})
             # which is equal to e(g_1, g_1)^{\lambda_x} * e(h_GID, g_1)^{w_x}
