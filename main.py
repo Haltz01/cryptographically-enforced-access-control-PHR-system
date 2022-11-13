@@ -40,7 +40,7 @@ def test3():
 
     print(f"[main] Giving the public paramenters from Patient 1 + K to the Third Party")
     third_party.addPatientKey(patient1_public_key, patient1_K, patient1_hash_GID)
-
+    
     print(f"[main] Reading the personal record from Patient 1 with K")
     # TODO
 
