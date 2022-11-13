@@ -20,44 +20,44 @@ class DataStorage:
 
     def createFile(self, GID) -> bool:
         file_path = self.getFilePath(GID)
-        print(f"[DataStorage] Trying to create  file: {file_path}")
-        print(f"[DataStorage] Checking if file ({file_path}) already exists...")
+        print(f"[DataStorage] Trying to create  file: {file_path[:20]}...")
+        print(f"[DataStorage] Checking if file ({file_path[:20]}...) already exists...")
         
         if (path.exists(file_path)):
-            print(f"[DataStorage] File <{file_path}> already exists!")
+            print(f"[DataStorage] File <{file_path[:20]}...> already exists!")
             return False # False means something went wrong (file was not created)
         
-        print(f"[DataStorage] File <{file_path}> created!")
+        print(f"[DataStorage] File <{file_path[:20]}...> created!")
 
         return True
 
     def updateFile(self, GID, input_str) -> bool:
         file_path = self.getFilePath(GID)
-        print(f"[DataStorage] Trying to update file: {file_path} ")
+        print(f"[DataStorage] Trying to update file: {file_path[:20]}... ")
 
         if (not exists(self.data_folder)):
-            print(f"[DataStorage] File <{file_path}> doesn't exist!") 
+            print(f"[DataStorage] File <{file_path[:20]}...> doesn't exist!") 
             return False
 
         file_writer = open(file_path, "wb")
         file_writer.write(input_str)
         file_writer.close()
-        print(f"[DataStorage] File <{file_path}> updated!")
+        print(f"[DataStorage] File <{file_path[:20]}...> updated!")
 
         return True
 
     def readFile(self, GID) -> str:
         file_path = self.getFilePath(GID)
-        print(f"[DataStorage] Trying to read file: {file_path} ")
+        print(f"[DataStorage] Trying to read file: {file_path[:20]}... ")
 
         if (not exists(self.data_folder)):
-            print(f"[DataStorage] File <{file_path}> doesn't exist!") 
+            print(f"[DataStorage] File <{file_path[:20]}...> doesn't exist!") 
             return False
 
         file = open(file_path, "rb")
         encrypted_content = file.read()
         file.close()
 
-        print(f"[DataStorage] File <{file_path}> read!")
+        print(f"[DataStorage] File <{file_path[:20]}...> read!")
 
         return encrypted_content

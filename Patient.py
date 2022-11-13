@@ -10,36 +10,37 @@ class Patient(Participant):
         self.secret_key = ""
         self.public_key = ""
         self.qty_attributes = 0
-        self.personal_record_filename = sha256(global_params['group'].serialize(self.getHashGID(self.GID))).hexdigest()
+        self.personal_record_filename = sha256(global_params['group'].serialize(self.getHashGID())).hexdigest()
         data_storage.createFile(self.personal_record_filename)
+        print(f"[Patient] New patient created. GID = {str(self.GID)[:15]}...")
 
     def __str__(self):
         return (f"Patient object\nName: {self.name}\nAllergies: {self.allergies}\nID document: {self.id}\nAge: {self.age}")
         
-    def writeToRecord(self, enc_message, data_storage):
-        msg_bytes = self.global_params['group'].serialize(enc_message)
-        data_storage.updateFile(self.personal_record_filename, msg_bytes)
+    def writeToPatientFile(self, message, policy_str, data_storage):
+        enc_data = super().writeToPatientFile(message, policy_str, data_storage, self.public_key, self.personal_record_filename)
+        print(f"[Patient] Wrote {str(enc_data['c0'])[:20]}... to user <{str(self.getHashGID())[:15]}...> personal record")
 
-    def readFromRecord(self, data_storage, ciphertext_data):
-        encrypted_message = data_storage.readFile(self.personal_record_filename)
-        encrypted_message = self.global_params['group'].deserialize(encrypted_message)
+        return enc_data
 
-        ciphertext_data['c0'] = encrypted_message
-        
+    def readPatientFile(self, data_storage, ciphertext_data):
         all_attributes = []
         for i in range(0, self.qty_attributes): # creating a K that satisties all attributes from this authority
             all_attributes.append(str(i))
         
-        K, attr_list = self.keyGen(all_attributes, self.global_params)
-        encrypted_message = self.decrypt(ciphertext_data, K, all_attributes, self.getHashGID(self.GID))
-        return encrypted_message
+        K = self.keyGen(all_attributes, self.global_params)[0]
+
+        decrypted_message = super().readPatientFile(data_storage, ciphertext_data, self.personal_record_filename, K, all_attributes, self.getHashGID())
+        print(f"[Patient] Read {str(decrypted_message)[:20]}... from user {str(self.getHashGID())[:15]}... personal record file")
+
+        return decrypted_message
         
     # Group oracle to retrieve hash for GIDs 
     # Hash function H : {0, 1}^* -> G that maps global identities GID to elements of G (random oracle)
     def getHashGID(self, verbose=False):
         h_GID = self.global_params['group'].hash(self.GID, type=G1)
         if verbose:
-            print(f"[PE] User {self.GID} has GID hash (in G1) = {h_GID}")
+            print(f"[Patient] User {str(self.GID)[:15]}... has GID hash (in G1) = {str(h_GID)[:15]}...")
 
         return h_GID
 
@@ -54,7 +55,6 @@ class Patient(Participant):
         group = global_params['group']
         g1 = global_params['generator']
 
-        print(f"[Patient - authoritySetup] Generating PK/SK pair for each attribute in the scheme ({self.GID})")
         for i in range(qty_attributes): # for each attribute in the universe of attributes
             # we choose two random exponents alpha_i and y_i
             alpha_i = group.random(ZR)
@@ -69,17 +69,19 @@ class Patient(Participant):
 
             public_key.append((e_gg_alpha_i, g1_y_i)) # PK = {e(g_1, g_1)^{\alpha_i} , g^{y_i}_1 \forall i}
             secret_key.append((alpha_i, y_i)) # SK = {\alpha_i, y_i \forall i}
-        print(f"[Patient - authoritySetup] All {qty_attributes} PK/SK pairs were created! ({self.GID})")
 
         self.secret_key = secret_key
         self.public_key = public_key
+
+        print(f"[Patient] Authority setup performed for Patient with hashed GID {str(self.getHashGID())[:15]}...")
+        print(f"\t-> Secret key: {str(secret_key)[:15]}...")
+        print(f"\t-> Public key: {str(public_key)[:15]}...")
+        print(f"\t-> Quantity of attributes for this authority: {qty_attributes}")
     
     # Creates key with a certain list of attributes that can be used to read encripted messages with a policy that matches the list of attributes in the key
     def keyGen(self, attr_list, global_params):
         # To create a key for GID for attribute 'i' belonging to an authority, the authority computes K_{i,GID} = g^{\alpha_i}_1 * h_GID^{y_i}
-        print(f"[Patient - keyGen] Generating key K for the following list of attributes: {attr_list} ({self.GID})")
         h_GID = self.getHashGID()
-        print(f"\t- User hashed GID = {h_GID}")
 
         g1 = global_params['generator']
 
@@ -90,22 +92,7 @@ class Patient(Participant):
             g1_alpha_i = g1 ** self.secret_key[attr][0] # g_{1}^{\alpha_i}
 
             K[attr] = g1_alpha_i * (h_GID ** self.secret_key[attr][1]) # K_{i,GID} = gg_{1}^{\alpha_i}* h_GID^{y_i}
-        print(f"[Patient - keyGen] Key K created! ({self.GID})\n\t- First entry in K: {K[int(attr_list[0])]}")
+        
+        print(f"[Patient] Generated K and attributes' list to allow decription of personal files from user {str(self.getHashGID())[:15]}...")
 
         return K, attr_list
-
-    def prettyPrintForFile(self) -> str:
-        output = "Name: " + self.name + "\n"
-        output += "Age: " + str(self.age) + "\n"
-        output += "ID: " + self.id + "\n"
-        output += "Alergies: "
-        for allergy in self.allergies:
-            output += allergy + ","
-        output = output[:-1]
-
-        return output
-
-    # def sendToServer(self, serverQueue: Queue, inputStr: str): # inputStr could be the encode str
-    #     patientMsgRecord = MsgRecord(self.id, self.name, inputStr)
-    #     serverQueue.put(patientMsgRecord)
-    #     return

@@ -10,109 +10,103 @@ def main():
     # patientSendToServerTest()
     test3()
 
-def pretty_print_enc_data(d, indent=0):
-   for key, value in d.items():
-      print('\t' * indent + str(key) + ":")
-      if isinstance(value, dict):
-         pretty_print_enc_data(value, indent+1)
-      else:
-         print('\t' * (indent+1) + str(value))
+def checkMessageEqual(original, decripted):
+    if (original == decripted):
+        print("[main] Decripted text is equal to the original (random) message!")
+    else:
+        print("[main] Decripted text is NOT equal to the original (random) message!")
         
 def test3():
     print(f"[main] Creating DataStorage")
     data_storage = DataStorage('./patients')
+    print("===========================")
 
     print(f"[main] Initializing PredicateEncription()")
     pe = PredicateEncryption() 
     global_params = pe.getGlobalParams()
+    print("===========================")
 
     print(f"[main] Creating Patient 1 for testing")
     patient1 = Patient("Test 1", global_params, data_storage)
-    print()
+    print("===========================")
 
     print(f"[main] Creating an authority associated to Patient 1")
     patient1.authoritySetup(global_params, 2) # 2 attributes
-    print()
+    print("===========================")
 
     print(f"[main] Writting random data to Patient 1's personal file")
     random_data = pe.group.random(GT)
-    enc_data = pe.encrypt(random_data, "0", patient1.public_key) # TODO: change later -> this is a problem, because PE obj. shouldn't have access to the user's PK
-    print()
-    patient1.writeToRecord(enc_data['c0'], data_storage)
-    print()
+
+    enc_data = patient1.writeToPatientFile(random_data, "0", data_storage)
+    print("===========================")
 
     print(f"[main] Reading data from Patient 1's personal file")
+    
+    # TODO: store the policy and C inside users' personal data file
+    # For testing purposes, we are only storing the encripted message and using this temporary map
+    temp_ciphertext_data = {
+        'policy_str': enc_data['policy_str'],
+        'c0': "",
+        'C': enc_data['C']
+    }
+    patient1_hashedGID = patient1.getHashGID()
+
+    msg = patient1.readPatientFile(data_storage, temp_ciphertext_data)
+
+    checkMessageEqual(random_data, msg)
+    print("===========================")
+
+    print(f"[main] Generating a read access-grating key K from Patient 1")
+    patient1_K, patient1_attr_list = patient1.keyGen(enc_data['policy_str'], global_params)
+    print("===========================")
+
+    print(f"[main] Creating a Third Party")
+    third_party = ThirdParty(global_params)
+    print("===========================")
+
+    print(f"[main] Giving the paramenters from Patient 1 (K, hashed GID, etc.) to the Third Party")
+    third_party.savePatientData(patient1_K, patient1_hashedGID, patient1_attr_list)
+    print("===========================")
+    
+    print(f"[main] Reading the personal record from Patient 1 with K (as Third Party)")
+    msg = third_party.readPatientFile(data_storage, patient1_hashedGID, temp_ciphertext_data)
+
+    checkMessageEqual(random_data, msg)
+    print("===========================")
+
+    print(f"[main] Reading the personal record from Patient 1 with WRONG K (as Third Party)")
+    patient1_K[0] = pair(patient1_K[0], patient1_K[0]) # Modifying one of the values for K...
+    third_party.savePatientData(patient1_K, patient1_hashedGID, patient1_attr_list)
+    msg = third_party.readPatientFile(data_storage, patient1_hashedGID, temp_ciphertext_data)
+
+    checkMessageEqual(random_data, msg)
+    print("===========================")
+
+    print(f"[main] Creating Medical Facility")
+    med_fac = MedicalFacility(global_params)
+    print("===========================")
+
+    print(f"[main] Giving information from Patient 1 to Medical Facility")
+    med_fac.savePatientData(patient1_K, patient1_hashedGID, patient1_attr_list, patient1.public_key)
+    print("===========================")
+
+    print(f"[main] Medical Facility writing data to Patient 1 file using his/her public key")
+    random_data = pe.group.random(GT)
+    enc_data = med_fac.writeToPatientFile(random_data, "0", data_storage, patient1_hashedGID)
+
     temp_ciphertext_data = {
         'policy_str': enc_data['policy_str'],
         'c0': "",
         'C': enc_data['C']
     }
 
-    msg = patient1.readFromRecord(data_storage, temp_ciphertext_data)
-    print(f"\t- Decripted data: {msg}")
-    print()
+    print("===========================")
 
-    print(f"[main] Generating a read access-grating key K from Patient 1")
-    patient1_K, patient1_attr_list = patient1.keyGen(enc_data['policy_str'], global_params)
-    print()
+    print(f"[main] Reading the personal record from Patient 1 as Patient 1")
+    msg = patient1.readPatientFile(data_storage, temp_ciphertext_data)
 
-    print(f"[main] Creating a Third Party")
-    third_party = ThirdParty(global_params)
-    print()
-
-    print(f"[main] Giving the public paramenters from Patient 1 + K to the Third Party")
-    third_party.addPatientKey(patient1_K, patient1.getHashGID(), patient1.personal_record_filename, patient1_attr_list)
-    print()
-    
-    print(f"[main] Reading the personal record from Patient 1 with K")
-    msg = third_party.readPatientFile(data_storage, patient1.getHashGID(), temp_ciphertext_data)
-    print(f"\t- Decripted data: {msg}")
-    print()
-
-    print(f"[main] Creating Medical Facility")
-    med_fac = MedicalFacility(global_params)
-    print()
-
-    print(f"[main] Giving information from Patient 1 to Medical Facility")
-    med_fac.savePatientData(patient1_K, patient1.getHashGID(), patient1.personal_record_filename, patient1_attr_list, patient1.public_key)
-    print()
-
-    print(f"[main] Medical Facility writing data to Patient 1 file using his/her public key")
-    random_data = pe.group.random(GT)
-    enc_data = pe.encrypt(random_data, "0", med_fac.patient_data[patient1.getHashGID()]['public_key']) 
-    med_fac.writeToPatientFile(data_storage, enc_data['c0'], patient1.getHashGID())
-
-
-def test():
-    print("\n[main] Testing data storage (1)")
-    test_patient = Patient("Test One", 22, "1234567890", ['AAA', 'BBB'])
-    test_patient.dataStorage.createFile(test_patient.id, test_patient.name)
-    test_patient.age = 23
-    test_patient.dataStorage.updateFile(test_patient.id, test_patient.name, test_patient.prettyPrintForFile())
-
-    print("\n[main] Testing predicate encryption (1)")
-    pe = PredicateEncryption(2) # 2 attributes
-    user_id = pe.group.random(ZR)
-    #print(f"[main] User ID is {user_id}")
-    pk, sk = pe.authoritySetup()
-    #print(f"[main] Public key = {pk}")
-    #print(f"[main] Secret key = {sk}")
-
-    attr_list = ['0']
-    print(f"\n[main] Calling keyGen()")
-    K = pe.keyGen(sk, attr_list, user_id)
-
-    message = pe.group.random(GT) # I don't know how to create a message inside the group and encode/decode it without using this auxiliart function
-
-    print(f"\n[main] Calling encrypt()")
-    encripted_data = pe.encrypt(message, "0", pk) # policies limited to 'or' and 'and'
-    # pretty_print_enc_data(encripted_data)
-    
-    print(f"\n[main] Calling encrypt() with wrong attributes' list")
-    pe.decrypt(encripted_data, K, ['1'], user_id) # Wrong attr list
-
-    print(f"\n[main] Calling encrypt() with correct attributes' list")
-    pe.decrypt(encripted_data, K, attr_list, user_id) # Corret attr list
+    checkMessageEqual(random_data, msg)
+    print("===========================")
 
 def test2():
     print("[main] Setup authorities (patients)")
