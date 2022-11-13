@@ -1,6 +1,7 @@
 from genericpath import exists
 from os import path, mkdir
 from Patient import Patient
+from MedicalFacility import MedicalFacility
 
 class DataStorage:
     def __init__(self, data_folder):
@@ -29,8 +30,6 @@ class DataStorage:
             print(f"[DataStorage] File <{file_path}> already exists!")
             return False # False means something went wrong (file was not created)
         
-        file_writer = open(file_path, "w")
-        file_writer.close()
         print(f"[DataStorage] File <{file_path}> created!")
 
         return True
@@ -44,6 +43,42 @@ class DataStorage:
 
         file_writer = open(file_path, "w")
         file_writer.write(patient.prettyPrintForFile())
+        file_writer.close()
+        print(f"[DataStorage] File <{file_path}> updated!")
+
+        return True
+
+    def getMedicalFacilityFilePath(self, fid: str, fname: str) -> str:
+        medicalFacility_name_formatted = fname.replace(" ", "_")
+        file_name = fid + '-' + medicalFacility_name_formatted + '.txt'
+
+        # TODO: Fix path traversal vuln here!
+        file_path = self.data_folder + '/' + file_name
+
+        return file_path
+
+    def createMedicalFacilityFile(self, medicalFacility: MedicalFacility) -> bool:
+        print(f"[DataStorage] Trying to create medicalFacility file")
+        file_path = self.getMedicalFacilityFilePath(medicalFacility.falicityId, medicalFacility.name)
+        print(f"[DataStorage] Checking if medicalFacility file ({file_path}) already exists...")
+        
+        if (path.exists(file_path)):
+            print(f"[DataStorage] File <{file_path}> already exists!")
+            return False # False means something went wrong (file was not created)
+        
+        print(f"[DataStorage] File <{file_path}> created!")
+
+        return True
+
+    def updateMedicalFacilityFile(self, medicalFacility: MedicalFacility) -> bool:
+        print("[DataStorage] Trying to update medicalFacility file") 
+        file_path = self.getMedicalFacilityFilePath(medicalFacility.falicityId, medicalFacility.name)
+        if (not exists(file_path)):
+            print(f"[DataStorage] File <{file_path}> doesn't exist!") 
+            return False
+
+        file_writer = open(file_path, "w")
+        file_writer.write(medicalFacility.prettyPrintForFile())
         file_writer.close()
         print(f"[DataStorage] File <{file_path}> updated!")
 
