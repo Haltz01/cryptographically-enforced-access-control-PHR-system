@@ -1,3 +1,4 @@
+from DataStorage import DataStorage
 class MedicalFacility:
     def __init__(self, name: str, addr: str, facilityId: str, patientIds: list):
         # TODO: Block overwritting name and id, otherwise it will be impossible to find the .txt files
@@ -5,6 +6,7 @@ class MedicalFacility:
         self.addr = addr
         self.facilityId = facilityId.strip()
         self.patientIds = [a.strip() for a in patientIds] # Patients in MedicalFacility
+        self.dataStorage = DataStorage('./MedicalFacility')
 
     def __str__(self):
         return (f"MedicalFacility object\nName: {self.name}\nPatientIds: {self.patientIds}\nFacilityID document: {self.facilityId}\nAddr: {self.addr}")
