@@ -6,7 +6,7 @@ class Server:
         self.patientQueue = Queue(10)
 
     def recvPatientData(self):
-        while self.patientQueue.empty() != False:
+        while self.patientQueue.empty() == False:
             msgRecord = self.patientQueue.get_nowait()
             self.dataStorage.createFile(msgRecord.id, msgRecord.name)
             self.dataStorage.updateFile(msgRecord.id, msgRecord.name, msgRecord.inputStr)
