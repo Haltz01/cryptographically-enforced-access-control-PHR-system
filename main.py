@@ -2,6 +2,7 @@ from Patient import *
 from Server import *
 from PredicateEncryption import PredicateEncryption
 from ThirdParty import ThirdParty
+from MedicalFacility import MedicalFacility
 
 def main():
     # test()
@@ -67,6 +68,19 @@ def test3():
     msg = third_party.readPatientFile(data_storage, patient1.getHashGID(), temp_ciphertext_data)
     print(f"\t- Decripted data: {msg}")
     print()
+
+    print(f"[main] Creating Medical Facility")
+    med_fac = MedicalFacility(global_params)
+    print()
+
+    print(f"[main] Giving information from Patient 1 to Medical Facility")
+    med_fac.savePatientData(patient1_K, patient1.getHashGID(), patient1.personal_record_filename, patient1_attr_list, patient1.public_key)
+    print()
+
+    print(f"[main] Medical Facility writing data to Patient 1 file using his/her public key")
+    random_data = pe.group.random(GT)
+    enc_data = pe.encrypt(random_data, "0", med_fac.patient_data[patient1.getHashGID()]['public_key']) 
+    med_fac.writeToPatientFile(data_storage, enc_data['c0'], patient1.getHashGID())
 
 
 def test():

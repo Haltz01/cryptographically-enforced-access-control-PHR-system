@@ -1,6 +1,6 @@
 # Custom files
 test/
-Patient/
+patients/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

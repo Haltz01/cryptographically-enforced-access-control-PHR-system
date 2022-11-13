@@ -20,7 +20,7 @@ class ThirdParty(Participant):
             'attr_list' : patient1_attr_list
         }
         self.patient_hashed_GIDs.append(patient_hash_GID)
-        print(f"[ThirdParty] Added patient's K, hashed GID and filename to list of known patients ({self.GID})")   
+        print(f"[ThirdParty] Added patient's K, hashed GID and filename to list of known patients' data ({self.GID})")   
 
     # Uses data from "patient_keys" to read their personal files
     def readPatientFile(self, data_storage, patient_hash_GID, ciphertext_data):
