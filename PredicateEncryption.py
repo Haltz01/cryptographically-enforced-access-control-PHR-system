@@ -27,7 +27,7 @@ class PredicateEncryption(ABEnc):
 
         return GP
 
-    # Creates the nilinear group G and also defines some global parameters, such as the group order and the generator g_1
+    # Creates the bilinear group G and also defines some global parameters, such as the group order and the generator g_1
     def globalSetup(self) -> dict:
         # A bilinear group G of order N = p_1 * p_2 * p_3 is chosen
         # TODO: convert prime order group to group G of order N!
